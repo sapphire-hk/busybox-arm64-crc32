@@ -12,7 +12,7 @@ jobs:
     steps:
       # 1. Checkout repository
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # 2. Install dependencies
       - name: Install dependencies
@@ -67,7 +67,7 @@ jobs:
 
       # 8. Upload the binary as artifact
       - name: Upload BusyBox binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: busybox-arm64-android
           path: busybox-1.36.1/busybox
