@@ -1,4 +1,4 @@
-name: Build BusyBox ARM64 Static
+name: Build BusyBox ARM64 for Android
 
 on:
   push:
@@ -6,61 +6,68 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-arm64-static:
+  build-arm64-android:
     runs-on: ubuntu-latest
 
     steps:
       # 1. Checkout repository
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       # 2. Install dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential git libncurses-dev bison flex wget
+          sudo apt-get install -y build-essential git wget bison flex libncurses-dev python3
 
-      # 3. Download BusyBox source
+      # 3. Download Android NDK
+      - name: Download Android NDK
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+          unzip -q android-ndk-r25b-linux.zip
+          mv android-ndk-r25b $HOME/android-ndk
+
+      # 4. Download BusyBox source
       - name: Download BusyBox
         run: |
           wget https://busybox.net/downloads/busybox-1.36.1.tar.bz2
           tar xjf busybox-1.36.1.tar.bz2
-          cd busybox-1.36.1
 
-      # 4. Copy default config
-      - name: Copy default config
+      # 5. Configure BusyBox
+      - name: Configure BusyBox
         run: |
           cd busybox-1.36.1
           make defconfig
-
-      # 5. Disable tc tool
-      - name: Disable tc
-        run: |
-          cd busybox-1.36.1
+          # Disable tc
           sed -i 's/CONFIG_TC=y/# CONFIG_TC is not set/' .config
-
-      # 6. Enable static linking
-      - name: Enable static linking
-        run: |
-          cd busybox-1.36.1
+          # Enable static linking
           sed -i 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config
 
-      # 7. Set cross-compile for ARM64
-      - name: Set cross-compile
+      # 6. Set NDK cross-compile environment
+      - name: Set NDK cross-compile
         run: |
-          cd busybox-1.36.1
+          export NDK=$HOME/android-ndk
+          export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          export PATH=$TOOLCHAIN/bin:$PATH
           export ARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE=aarch64-linux-android-
+          export CC=aarch64-linux-android21-clang
+          export CXX=aarch64-linux-android21-clang++
+          export AR=aarch64-linux-android-ar
+          export AS=aarch64-linux-android-as
+          export LD=aarch64-linux-android-ld
+          export RANLIB=aarch64-linux-android-ranlib
+          export STRIP=aarch64-linux-android-strip
 
-      # 8. Build BusyBox
+      # 7. Build BusyBox
       - name: Build BusyBox
         run: |
           cd busybox-1.36.1
           make -j$(nproc)
 
-      # 9. Upload the binary as artifact
+      # 8. Upload the binary as artifact
       - name: Upload BusyBox binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: busybox-arm64-static
+          name: busybox-arm64-android
           path: busybox-1.36.1/busybox
