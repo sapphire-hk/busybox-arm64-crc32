@@ -1,40 +1,61 @@
-
 name: Build BusyBox ARM64
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build:
+  build-arm64:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      # 1. Checkout repository
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wget build-essential gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+      # 2. Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git libncurses-dev bison flex wget
 
-    - name: Download BusyBox
-      run: |
-        wget https://busybox.net/downloads/busybox-1.36.1.tar.bz2
-        tar xjf busybox-1.36.1.tar.bz2
+      # 3. Download BusyBox source
+      - name: Download BusyBox
+        run: |
+          wget https://busybox.net/downloads/busybox-1.36.1.tar.bz2
+          tar xjf busybox-1.36.1.tar.bz2
+          cd busybox-1.36.1
 
-    - name: Configure and Build
-      run: |
-        cd busybox-1.36.1
-        make defconfig
-        # Enable crc32 applet
-        sed -i 's/# CONFIG_CRC32 is not set/CONFIG_CRC32=y/' .config
-        yes "" | make oldconfig
-        export CROSS_COMPILE=aarch64-linux-gnu-
-        export ARCH=arm64
-        make -j$(nproc)
+      # 4. Copy default config
+      - name: Copy default config
+        run: |
+          cd busybox-1.36.1
+          make defconfig
 
-    - name: Upload Binary
-      uses: actions/upload-artifact@v4
-      with:
-        name: busybox-arm64
-        path: busybox-1.36.1/busybox
+      # 5. Disable tc tool
+      - name: Disable tc
+        run: |
+          cd busybox-1.36.1
+          sed -i 's/CONFIG_TC=y/# CONFIG_TC is not set/' .config
+
+      # 6. Set cross-compile for ARM64
+      - name: Set cross-compile
+        run: |
+          cd busybox-1.36.1
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+
+      # 7. Build BusyBox
+      - name: Build BusyBox
+        run: |
+          cd busybox-1.36.1
+          make -j$(nproc)
+
+      # 8. Upload the binary as artifact
+      - name: Upload BusyBox binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: busybox-arm64
+          path: busybox-1.36.1/busybox
+
