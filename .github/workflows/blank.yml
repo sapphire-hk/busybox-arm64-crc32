@@ -1,3 +1,4 @@
+
 name: Build BusyBox ARM64
 
 on:
@@ -8,12 +9,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v3
 
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y wget build-essential gcc-aarch64-linux-gnu
+        sudo apt-get install -y wget build-essential gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
     - name: Download BusyBox
       run: |
@@ -24,6 +26,7 @@ jobs:
       run: |
         cd busybox-1.36.1
         make defconfig
+        # Enable crc32 applet
         sed -i 's/# CONFIG_CRC32 is not set/CONFIG_CRC32=y/' .config
         yes "" | make oldconfig
         export CROSS_COMPILE=aarch64-linux-gnu-
