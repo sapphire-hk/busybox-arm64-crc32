@@ -1,4 +1,4 @@
-name: Build BusyBox ARM64
+name: Build BusyBox ARM64 Static
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-arm64:
+  build-arm64-static:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,23 +39,28 @@ jobs:
           cd busybox-1.36.1
           sed -i 's/CONFIG_TC=y/# CONFIG_TC is not set/' .config
 
-      # 6. Set cross-compile for ARM64
+      # 6. Enable static linking
+      - name: Enable static linking
+        run: |
+          cd busybox-1.36.1
+          sed -i 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/' .config
+
+      # 7. Set cross-compile for ARM64
       - name: Set cross-compile
         run: |
           cd busybox-1.36.1
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
 
-      # 7. Build BusyBox
+      # 8. Build BusyBox
       - name: Build BusyBox
         run: |
           cd busybox-1.36.1
           make -j$(nproc)
 
-      # 8. Upload the binary as artifact
+      # 9. Upload the binary as artifact
       - name: Upload BusyBox binary
         uses: actions/upload-artifact@v4
         with:
-          name: busybox-arm64
+          name: busybox-arm64-static
           path: busybox-1.36.1/busybox
-
